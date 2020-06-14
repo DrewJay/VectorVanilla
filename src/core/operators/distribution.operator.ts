@@ -57,7 +57,10 @@ export class DistributionUnit {
     /**
      * When learning rate is being modified, these are the rates.
      */
-    private learningRateTuneRates = [.0001, .0009];
+    private learningRateTuneRates = {
+        min: .0001,
+        max: .0009,
+    };
 
     /**
      * Deremine whether to track errors during iterations.
@@ -238,16 +241,16 @@ export class DistributionUnit {
                 // Adjust learning rate++.
                 if (!this.errorCorrectionIncrease) {
                     this.learningRate += randNum(
-                        this.learningRateTuneRates[0],
-                        this.learningRateTuneRates[1],
+                        this.learningRateTuneRates.min,
+                        this.learningRateTuneRates.max,
                         4,
                     );
                     this.errorCorrectionIncrease = true;
                     // Adjust learning rate--.
                 } else {
                     this.learningRate -= randNum(
-                        this.learningRateTuneRates[0],
-                        this.learningRateTuneRates[1],
+                        this.learningRateTuneRates.min,
+                        this.learningRateTuneRates.max,
                         4,
                     );
                     this.errorCorrectionIncrease = false;
