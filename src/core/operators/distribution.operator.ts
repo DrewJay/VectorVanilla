@@ -109,7 +109,7 @@ export class DistributionUnit {
     /**
      * Distribute data across the neural network.
      */
-    public async *iterate() {
+    public async iterate() {
         while (true) {
             for (let i = 0; i < this.inputData.length; i++) {
                 this.layers.forEach((layer) => {
@@ -144,7 +144,6 @@ export class DistributionUnit {
                     });
                 });
             }
-            yield true;
         }
     }
 
