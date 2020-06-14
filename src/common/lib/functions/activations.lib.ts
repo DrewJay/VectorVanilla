@@ -1,4 +1,3 @@
-
 import {
     ActivationFunctionsCollection,
 } from '../../structures/types.struct';

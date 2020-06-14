@@ -1,4 +1,3 @@
-
 import {
     CostFunctionsCollection,
 } from '../../structures/types.struct';

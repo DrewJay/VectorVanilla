@@ -1,4 +1,3 @@
-
 import {
     DerivativeFunctionsCollection,
 } from '../../structures/types.struct';
