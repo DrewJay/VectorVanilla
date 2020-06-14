@@ -37,4 +37,4 @@ export const deltaRule = (
     weightedSumDerivative: number,
     inputValue: number,
     learningRate: number,
-) => (targetValue - sourceNodeValue) * weightedSumDerivative * inputValue * learningRate;
+) => ((targetValue - sourceNodeValue) * weightedSumDerivative * inputValue * learningRate);

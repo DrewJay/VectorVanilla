@@ -13,6 +13,7 @@ import {
 import {
     deltaRule,
 } from '../../common/lib/scientific.lib';
+import { randNum } from '../../common/lib/utils.lib';
 
 /**
  * Unit suited for data distribution across the neural network.
@@ -44,9 +45,19 @@ export class DistributionUnit {
     private costFunction: CostFunctionTypes;
 
     /**
+     * Input batch size.
+     */
+    private batchSize: number = 1;
+
+    /**
      * Learning rate coefficient.
      */
     private learningRate: number = 1;
+
+    /**
+     * When learning rate is being modified, these are the rates.
+     */
+    private learningRateTuneRates = [.0001, .0009];
 
     /**
      * Deremine whether to track errors during iterations.
@@ -56,17 +67,37 @@ export class DistributionUnit {
     /**
      * Collection of activation functions.
      */
-    public activations: ActivationFunctionsCollection;
+    private activations: ActivationFunctionsCollection;
 
     /**
      * Collection of cost functions.
      */
-    public costs: CostFunctionsCollection;
+    private costs: CostFunctionsCollection;
 
     /**
      * Collection of derivatives of activation functions.
      */
-    public derivatives: DerivativeFunctionsCollection;
+    private derivatives: DerivativeFunctionsCollection;
+
+    /**
+     * Previous error correction action (up/down).
+     */
+    private errorCorrectionIncrease = false;
+
+    /**
+     * How many times error can increase in a row.
+     */
+    private errorFluctuationLimit = 1;
+
+    /**
+     * How many times error got worse in a row.
+     */
+    private errorCounter = 0;
+
+    /**
+     * Non-error counter.
+     */
+    private nonError = 0;
 
     /**
      * Store layers reference locally and modify it on the fly.
@@ -79,11 +110,13 @@ export class DistributionUnit {
     constructor(
         layers: NodeGroup[],
         costFunction: CostFunctionTypes,
+        batchSize: number,
         learningRate: number = 1,
         errorTracking: boolean = false
     ) {
         this.layers = layers;
         this.costFunction = costFunction;
+        this.batchSize = batchSize;
         this.learningRate = learningRate;
         this.errorTracking = errorTracking;
     }
@@ -131,9 +164,17 @@ export class DistributionUnit {
 
                     // Start gradient descent backpropagation on last layer.
                     if (output) {
-                        layer.error = this.costs[this.costFunction](this.targetData[i], sourceNode.value);
+                        const error = this.costs[this.costFunction](this.targetData[i], sourceNode.value);
+
+                        // Attempt to adjust learning rate.
+                        this.stochasticLearningRateAdaptation(layer.error, error);
+                        layer.error = error;
+
                         if (this.errorTracking) { console.log(layer.error); }
-                        this.backpropagate(this.targetData[i]);
+
+                        if ((i + 1) % this.batchSize === 0) {
+                            this.backpropagate(this.targetData[i]);
+                        }
                     }
 
                     // Adjust target node value (add to it's weighted sum).
@@ -165,7 +206,7 @@ export class DistributionUnit {
                         sourceNode.value,
                         this.derivatives[layer.activation](sourceNode.weightedSum),
                         sourceConnectionObject.node.value,
-                        this.learningRate
+                        this.learningRate,
                     );
                     
                     sourceConnectionObject.weight -= delta;
@@ -173,8 +214,49 @@ export class DistributionUnit {
                     // Propagate delta change to connected node.
                     const targetConnectionObject = sourceConnectionObject.node.connectedTo.find((targetConnectionObject) => targetConnectionObject.node.id === id);
                     targetConnectionObject.weight = sourceConnectionObject.weight;
+
+                    sourceNode.value = 0;
                 });
             });
+        }
+    }
+
+    /**
+     * Attempt to adjust learning rate based on error tendencies.
+     * 
+     * @param oldError - Previous error
+     * @param newError - New error
+     */
+    private stochasticLearningRateAdaptation(oldError: number, newError: number) {
+        // Error has increased.
+        if (newError > oldError) {
+            this.errorCounter += 1;
+            this.nonError = 0;
+
+            // Check if number of allowed subsequent wrrors has passed.
+            if (this.errorCounter === this.errorFluctuationLimit) {
+                // Adjust learning rate++.
+                if (!this.errorCorrectionIncrease) {
+                    this.learningRate += randNum(
+                        this.learningRateTuneRates[0],
+                        this.learningRateTuneRates[1],
+                        4,
+                    );
+                    this.errorCorrectionIncrease = true;
+                    // Adjust learning rate--.
+                } else {
+                    this.learningRate -= randNum(
+                        this.learningRateTuneRates[0],
+                        this.learningRateTuneRates[1],
+                        4,
+                    );
+                    this.errorCorrectionIncrease = false;
+                }
+            }
+        // Error has decreased.
+        } else {
+            this.errorCounter = 0;
+            this.nonError += 1;
         }
     }
 };

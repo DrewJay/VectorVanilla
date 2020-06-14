@@ -19,15 +19,23 @@ net.initializeWeights();
 const dist = new DistributionUnit(
     net.layerStackT2,
     'meanSquaredError',
-    .4,
-    true,
+    1,
+    .0001,
+    false,
 );
 
 // Prepare simple datasets.
-dist.initializeInputData([1, 2, 3, 4, 5]);
-dist.initializeTargetData([2, 4, 6, 8, 10]);
+const data = [];
+for (let i = 0; i < 120; i++) { data[i] = i/1000; }
+const plusdata = data.map((val) => val + .0001);
+
+dist.initializeInputData(data);
+dist.initializeTargetData(plusdata);
 
 // Use DistributionUnit iterative generator method to perform iterations.
-for (let i = 0; i < 300; i++) {
+for (let i = 0; i < 500; i++) {
     dist.iterate();
 }
+
+// Show final error.
+console.log(net.layerStackT2[net.layerStackT2.length - 1].error);
