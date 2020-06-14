@@ -236,7 +236,7 @@ export class DistributionUnit {
             this.errorCounter += 1;
             this.nonError = 0;
 
-            // Check if number of allowed subsequent wrrors has passed.
+            // Check if number of allowed subsequent errors has passed.
             if (this.errorCounter === this.errorFluctuationLimit) {
                 // Adjust learning rate++.
                 if (!this.errorCorrectionIncrease) {
