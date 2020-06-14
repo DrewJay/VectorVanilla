@@ -110,40 +110,38 @@ export class DistributionUnit {
      * Distribute data across the neural network.
      */
     public async iterate() {
-        while (true) {
-            for (let i = 0; i < this.inputData.length; i++) {
-                this.layers.forEach((layer) => {
-                    // Load first layer with input data.
-                    const input = layer.flags.includes('input');
-                    const output = layer.flags.includes('output');
+        for (let i = 0; i < this.inputData.length; i++) {
+            this.layers.forEach((layer) => {
+                // Load first layer with input data.
+                const input = layer.flags.includes('input');
+                const output = layer.flags.includes('output');
 
-                    if (input) {
-                        layer.collection[0].value = this.inputData[i];
+                if (input) {
+                    layer.collection[0].value = this.inputData[i];
+                }
+
+                // Apply activation function on non-input layer.
+                layer.collection.forEach((sourceNode) => {
+                    if (!input) {
+                        const activation = this.activations[layer.activation];
+                        sourceNode.weightedSum = sourceNode.value; 
+                        sourceNode.value += layer.bias;
+                        sourceNode.value = activation(sourceNode.value);
                     }
 
-                    // Apply activation function on non-input layer.
-                    layer.collection.forEach((sourceNode) => {
-                        if (!input) {
-                            const activation = this.activations[layer.activation];
-                            sourceNode.weightedSum = sourceNode.value; 
-                            sourceNode.value += layer.bias;
-                            sourceNode.value = activation(sourceNode.value);
-                        }
+                    // Start gradient descent backpropagation on last layer.
+                    if (output) {
+                        layer.error = this.costs[this.costFunction](this.targetData[i], sourceNode.value);
+                        if (this.errorTracking) { console.log(layer.error); }
+                        this.backpropagate(this.targetData[i]);
+                    }
 
-                        // Start gradient descent backpropagation on last layer.
-                        if (output) {
-                            layer.error = this.costs[this.costFunction](this.targetData[i], sourceNode.value);
-                            if (this.errorTracking) { console.log(layer.error); }
-                            this.backpropagate(this.targetData[i]);
-                        }
-
-                        // Adjust target node value (add to it's weighted sum).
-                        sourceNode.connectedTo.forEach((sourceConnectionObject) => {
-                            sourceConnectionObject.node.value += sourceConnectionObject.weight * sourceNode.value;
-                        });
+                    // Adjust target node value (add to it's weighted sum).
+                    sourceNode.connectedTo.forEach((sourceConnectionObject) => {
+                        sourceConnectionObject.node.value += sourceConnectionObject.weight * sourceNode.value;
                     });
                 });
-            }
+            });
         }
     }
 
