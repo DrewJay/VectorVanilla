@@ -17,6 +17,6 @@ export const randNum = (low: number, high: number, float: number): number => {
  * @returns Random string
  */
 export const randStr = (length: number) => {
-    var randomstring = require("randomstring") as any;
+    var randomstring = require('randomstring') as any;
     return randomstring.generate(length);
 };
