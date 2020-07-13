@@ -11,8 +11,14 @@ import { randStr } from '../../common/lib/utils.lib';
  * basic numeric/textual inputs.
  */
 export class NetworkAbstractionUnit {
+    /**
+     * Tier 1 layer stack (lower abstraction).
+     */
     public layerStackT1: Layer[] = [];
 
+    /**
+     * Tier 2 layer stack (high abstraction).
+     */
     public layerStackT2: NodeGroup[] = []; 
 
     /**
