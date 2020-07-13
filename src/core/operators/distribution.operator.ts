@@ -90,7 +90,7 @@ export class DistributionUnit {
     /**
      * How many times error can increase in a row.
      */
-    private errorFluctuationLimit = 1;
+    private errorFluctuationLimit = 2;
 
     /**
      * How many times error got worse in a row.
@@ -107,6 +107,7 @@ export class DistributionUnit {
      * 
      * @param layers - T2 layers object
      * @param costFunction - Error function to be used
+     * @param batchSize - Training sample size
      * @param learningRate - The learning rate (min. 1)
      * @param errorTracking - Whether to track errors during training
      */

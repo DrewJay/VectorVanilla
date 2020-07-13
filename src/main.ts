@@ -26,7 +26,7 @@ const dist = new DistributionUnit(
 
 // Prepare simple datasets.
 const data = [];
-for (let i = 0; i < 120; i++) { data[i] = i/1000; }
+for (let i = 0; i < 120; i++) { data[i] = i / 1000; }
 const plusdata = data.map((val) => val + .0001);
 
 dist.initializeInputData(data);
