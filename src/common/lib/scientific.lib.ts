@@ -78,17 +78,17 @@ export const generalBackpropagation = (
         layer.collection.forEach((sourceNode) => {
             // Output layer.
             if (i === layers.length - 1) {
+                // Sigma is important component in backpropagation. It is virtually
+                // calculated as a multiplication of derivatives of cost function
+                // and activation funcion.
+                const sigma = derivatives[costFunction](
+                    target, sourceNode.value,
+                ) * derivatives[layer.activation](sourceNode.weightedSum);
+
+                sourceNode.sigma = sigma;
                 // Iterate over neurons connected to output neuron.
                 sourceNode.connectedBy.forEach((sourceConnectionObject) => {
-                    // Sigma is important component in backpropagation. It is virtually
-                    // calculated as a multiplication of derivatives of cost function
-                    // and activation funcion.
-                    const sigma = derivatives[costFunction](
-                        target, sourceNode.value,
-                    ) * derivatives[layer.activation](sourceNode.weightedSum);
-
-                    sourceNode.sigma = sigma;
-                    // Calculate final delta weight. It equals sigma times
+                    // Calculate final delta weight. It equals sigma times source node value.
                     const deltaWeight = sigma * sourceConnectionObject.node.value;
 
                     sourceConnectionObject.weight -= deltaWeight * learningRate;
@@ -100,11 +100,13 @@ export const generalBackpropagation = (
             } else {
                 // Get sigma sum from next layer.
                 const sum = sigmaSum(sourceNode.connectedTo);
+                sourceNode.sigma = sum * derivatives[layer.activation](sourceNode.value);
+
                 // Apply delta-rule to adjust neural network weights.
                 sourceNode.connectedBy.forEach((sourceConnectionObject) => {
-                    sourceNode.sigma = sum * derivatives[layer.activation](sourceNode.value);
                     // Calculate and apply delta weight.
                     const deltaWeight = sourceNode.sigma * sourceConnectionObject.node.value;
+
                     sourceConnectionObject.weight -= deltaWeight * learningRate;
                     // Get to the other side of the connection and propagate delta weight over there.
                     const targetConnectionObject = sourceConnectionObject.node.connectedTo.find((target) => { return target.node.id === sourceNode.id });

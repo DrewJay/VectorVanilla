@@ -6,8 +6,8 @@ import { ResultCollector } from './core/collectors/result.collector';
 const net = new NetworkAbstractionUnit();
 
 // Describe network layers.
-net.add({ nodes: 1, activation: 'ReLu', bias: 0, });
-net.add({ nodes: 5, activation: 'ReLu', bias: 0, });
+net.add({ nodes: 1, activation: 'linear', bias: 0, });
+net.add({ nodes: 10, activation: 'linear', bias: 0, });
 net.add({ nodes: 1, activation: 'linear', bias: 0, });
 
 // Use NetworkAbastractionUnit API to forge detailed network model.
@@ -21,7 +21,7 @@ const dist = new DistributionUnit(
     'meanSquaredError',
     1,
     1,
-    true,
+    false,
     false,
 );
 
