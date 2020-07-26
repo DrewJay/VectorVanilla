@@ -19,9 +19,19 @@ export type CostFunction = (target: number, output: number) => number
 export type DerivativeFunction = ActivationFunction
 
 /**
+ * Reasons of stopping the training.
+ */
+export type TerminalReasons = 'convergence' | 'divergence';
+
+/**
  * Range-random generator function.
  */
-export type RRGenerator = (low: number, high: number, special?: boolean) => number
+export type RRGenerator = (
+    low: number,
+    high: number,
+    special?: boolean,
+    abs?: boolean,
+) => number;
 
 /**
  * Activation functions string representations.
@@ -51,7 +61,7 @@ export type CostFunctionsCollection = {
  * Collection of derivative functions.
  */
 export type DerivativeFunctionsCollection = {
-    [key in ActivationFunctionTypes]: DerivativeFunction
+    [key in ActivationFunctionTypes & CostFunctionTypes]: DerivativeFunction
 }
 
 /**
@@ -72,6 +82,7 @@ export type Node = {
     weightedSum: number;
     connectedTo: Connection[];
     connectedBy: Connection[];
+    sigma?: number;
 }
 
 /**
@@ -87,11 +98,11 @@ export type NodeGroup = {
     activation?: ActivationFunctionTypes;
     bias: number;
     flags: NodeFlags[];
-    error?: number;
 }
 
 /**
- * Group of connected-to/by nodes.
+ * Connection type contains source node reference
+ * and weight reference.
  */
 export type Connection = {
     node: Node;

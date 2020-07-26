@@ -96,7 +96,7 @@ export class NetworkAbstractionUnit {
 
                     // Distribute weights to particular connected nodes.
                     sourceNode.connectedTo.forEach((sourceConnectionObject) => {
-                        const weight = XavierNormal(sourceNode.connectedBy.length, sourceNode.connectedTo.length);
+                        const weight = XavierNormal(sourceNode.connectedBy.length, sourceNode.connectedTo.length, false, true);
                         sourceConnectionObject.weight = weight;
 
                         const targetConnectionObject = sourceConnectionObject.node.connectedBy.find((targetConnectionObject) => targetConnectionObject.node.id === id);

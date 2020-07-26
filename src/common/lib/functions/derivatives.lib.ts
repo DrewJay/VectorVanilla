@@ -27,12 +27,21 @@ module.exports = {
     /**
      * Linear function derivative.
      * 
-     * @param input - The input number
      * @param slope - Function slope parameter
      * @returns Linear derivative value
      */
-    linear: (input: number, slope: number) => {
-        if (input === 0) { return 0; }
-        return slope * (input / input);
+    linear: (slope: number = 1) => {
+        return slope; 
     },
+
+    /**
+     * Mean squared error derivative.
+     *
+     * @param target - Expected number
+     * @param output - Gotten number
+     * @returns Derivated MSE value
+     */
+    meanSquaredError: (target: number, output: number) => {
+        return output - target;
+    }
 } as DerivativeFunctionsCollection;

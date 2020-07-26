@@ -1,9 +1,9 @@
 import {
     NodeGroup,
+    TerminalReasons,
     ActivationFunctionsCollection,
     CostFunctionTypes,
     CostFunctionsCollection,
-    DerivativeFunctionsCollection,
 } from '../../common/structures/types.struct';
 
 import {
@@ -11,7 +11,7 @@ import {
 } from '../../common/structures/general/decorators';
 
 import {
-    deltaRule,
+    generalBackpropagation,
 } from '../../common/lib/scientific.lib';
 import { randNum } from '../../common/lib/utils.lib';
 
@@ -25,6 +25,16 @@ import { randNum } from '../../common/lib/utils.lib';
 })
 export class DistributionUnit {
     /**
+     * The output node value at the end of the iteration.
+     */
+    public output: number[] = [];
+
+    /**
+     * Training error.
+     */
+    public error: number = 0;
+
+    /**
      * Provided input data.
      */
     public inputData: number[] = [];
@@ -37,7 +47,7 @@ export class DistributionUnit {
     /**
      * Generated descriptive T2 layer object.
      */
-    private layers: NodeGroup[];
+    public layers: NodeGroup[];
 
     /**
      * Chosen error function.
@@ -55,17 +65,22 @@ export class DistributionUnit {
     private learningRate: number = 1;
 
     /**
-     * When learning rate is being modified, these are the rates.
+     * When on, iteration use learning rate adaptation.
      */
-    private learningRateTuneRates = {
-        min: .0001,
-        max: .0009,
-    };
+    private adaptive: boolean = false;
 
     /**
      * Deremine whether to track errors during iterations.
      */
     private errorTracking = false;
+
+    /**
+     * When learning rate is being modified, these are the rates.
+     */
+    private learningRateTuneRates = {
+        min: .001,
+        max: .009,
+    };
 
     /**
      * Collection of activation functions.
@@ -78,11 +93,6 @@ export class DistributionUnit {
     private costs: CostFunctionsCollection;
 
     /**
-     * Collection of derivatives of activation functions.
-     */
-    private derivatives: DerivativeFunctionsCollection;
-
-    /**
      * Previous error correction action (up/down).
      */
     private errorCorrectionIncrease = false;
@@ -90,7 +100,7 @@ export class DistributionUnit {
     /**
      * How many times error can increase in a row.
      */
-    private errorFluctuationLimit = 2;
+    private errorFluctuationLimit = 1;
 
     /**
      * How many times error got worse in a row.
@@ -100,7 +110,15 @@ export class DistributionUnit {
     /**
      * Non-error counter.
      */
-    private nonError = 0;
+    private subsequentErorReducingIterations = 0;
+
+    /**
+     * Constant values used outside of this class during training.
+     */
+    public static constants = {
+        RECOMMENDED_DIVERGENCE_THRESHOLD: 2,
+        RECOMMENDED_TRAINING_CONFIDENCE: Math.pow(10, -30),
+    };
 
     /**
      * Store layers reference locally and modify it on the fly.
@@ -109,6 +127,7 @@ export class DistributionUnit {
      * @param costFunction - Error function to be used
      * @param batchSize - Training sample size
      * @param learningRate - The learning rate (min. 1)
+     * @param adaptive - Whether to use internal adaptive methods
      * @param errorTracking - Whether to track errors during training
      */
     constructor(
@@ -116,52 +135,84 @@ export class DistributionUnit {
         costFunction: CostFunctionTypes,
         batchSize: number,
         learningRate: number = 1,
+        adaptive: boolean = false,
         errorTracking: boolean = false
     ) {
         this.layers = layers;
         this.costFunction = costFunction;
         this.batchSize = batchSize;
         this.learningRate = learningRate;
+        this.adaptive = adaptive;
         this.errorTracking = errorTracking;
     }
 
     /**
      * Initialize data that will enter the network.
      * 
-     * @param data - input dataset
+     * @param data - Input dataset
      */
     public initializeInputData(data: number[]) {
         this.inputData = data;
     }
 
     /**
-     * Initialize data that will enter the network.
+     * Initialize seeked values.
      * 
-     * @param data - input dataset
+     * @param data - Target dataset
      */
     public initializeTargetData(data: number[]) {
         this.targetData = data;
     }
 
     /**
-     * Distribute data across the neural network.
+     * Terminate training if particular conditions are fulfilled.
+     * 
+     * @param reasons - Reasons of termination
+     * @returns Textual reson description
      */
-    public async iterate() {
-        for (let i = 0; i < this.inputData.length; i++) {
+    public terminateOn(reasons: TerminalReasons[]) {
+        if (
+            reasons.includes('divergence')
+            && this.error >= DistributionUnit.constants.RECOMMENDED_DIVERGENCE_THRESHOLD
+        ) {
+            return 'Possible divergence detected.';
+        } else if (
+            reasons.includes('convergence')
+            && this.error <= DistributionUnit.constants.RECOMMENDED_TRAINING_CONFIDENCE
+        ) {
+            return 'Training terminated for high confidence results.';
+        }
+    }
+
+    /**
+     * Distribute data across the neural network.
+     * 
+     * @param feedForwardOnly - Only feed the data in to get the output without any network
+     * characteristics modifications (a.k.a "prediction")
+     */
+    public iterate(feedForwardOnly = false) {
+        // Get input layer size and base increment on it.
+        const inputLayerSize = this.layers[0].collection.length;
+
+        for (let i = 0; i < this.inputData.length; i += inputLayerSize) {
             this.layers.forEach((layer) => {
                 // Load first layer with input data.
                 const input = layer.flags.includes('input');
                 const output = layer.flags.includes('output');
+                this.output = [];
 
+                // Feed the input layer.
                 if (input) {
-                    layer.collection[0].value = this.inputData[i];
+                    layer.collection.forEach((inputNode, index) => {
+                        inputNode.value = this.inputData[i + index];
+                    });
                 }
 
                 // Apply activation function on non-input layer.
                 layer.collection.forEach((sourceNode) => {
                     if (!input) {
                         const activation = this.activations[layer.activation];
-                        sourceNode.weightedSum = sourceNode.value; 
+                        sourceNode.weightedSum = sourceNode.value;
                         sourceNode.value += layer.bias;
                         sourceNode.value = activation(sourceNode.value);
                     }
@@ -171,58 +222,48 @@ export class DistributionUnit {
                         const error = this.costs[this.costFunction](this.targetData[i], sourceNode.value);
 
                         // Attempt to adjust learning rate.
-                        this.stochasticLearningRateAdaptation(layer.error, error);
-                        layer.error = error;
-
-                        if (this.errorTracking) { console.log(layer.error); }
-
-                        if ((i + 1) % this.batchSize === 0) {
-                            this.backpropagate(this.targetData[i]);
+                        if (this.adaptive) {
+                            this.stochasticLearningRateAdaptation(this.error, error);
                         }
+
+                        // Store the error.
+                        this.error = error;
+                        if (this.errorTracking) { console.log(this.error); }
+
+                        // Backpropagate every time we're not predicting.
+                        if (feedForwardOnly === false) {
+                            generalBackpropagation(this.targetData[i], this.costFunction, this.learningRate, this.layers);
+                        }
+
+                        // Generate output value.
+                        this.output.push(sourceNode.value);
+
+                        // Reset all node values after iteration.
+                        this.clearNodeValues();
                     }
 
-                    // Adjust target node value (add to it's weighted sum).
+                    // Adjust target node value (add to it's weighted sum). This is faster than dot product
+                    // on non gpu accelerated devices.
                     sourceNode.connectedTo.forEach((sourceConnectionObject) => {
                         sourceConnectionObject.node.value += sourceConnectionObject.weight * sourceNode.value;
                     });
                 });
             });
         }
+
+        return this.error;
     }
 
     /**
-     * Backpropagate and adjusts node weights.
-     * 
-     * @param target - Expected output number
+     * Clear all node values (after every iteration).
      */
-    private backpropagate(target: number) {
-        // Reverse layer iteration.
-        for (let i = this.layers.length - 1; i > -1; i--) {
-            const layer = this.layers[i];
-
-            layer.collection.forEach((sourceNode) => {
-                const id = sourceNode.id;
-
-                // Apply delta-rule to adjust neural network weights.
-                sourceNode.connectedBy.forEach((sourceConnectionObject) => {
-                    let delta = deltaRule(
-                        target,
-                        sourceNode.value,
-                        this.derivatives[layer.activation](sourceNode.weightedSum),
-                        sourceConnectionObject.node.value,
-                        this.learningRate,
-                    );
-                    
-                    sourceConnectionObject.weight -= delta;
-
-                    // Propagate delta change to connected node.
-                    const targetConnectionObject = sourceConnectionObject.node.connectedTo.find((targetConnectionObject) => targetConnectionObject.node.id === id);
-                    targetConnectionObject.weight = sourceConnectionObject.weight;
-
-                    sourceNode.value = 0;
-                });
+    public clearNodeValues() {
+        // Simple iteration over all nodes.
+        this.layers.forEach(layer => {
+            layer.collection.forEach(node => {
+                node.value = 0;
             });
-        }
+        });
     }
 
     /**
@@ -235,7 +276,7 @@ export class DistributionUnit {
         // Error has increased.
         if (newError > oldError) {
             this.errorCounter += 1;
-            this.nonError = 0;
+            this.subsequentErorReducingIterations = 0;
 
             // Check if number of allowed subsequent errors has passed.
             if (this.errorCounter === this.errorFluctuationLimit) {
@@ -260,7 +301,7 @@ export class DistributionUnit {
         // Error has decreased.
         } else {
             this.errorCounter = 0;
-            this.nonError += 1;
+            this.subsequentErorReducingIterations += 1;
         }
     }
 };

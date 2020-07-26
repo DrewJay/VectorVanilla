@@ -26,11 +26,11 @@ module.exports = {
     /**
      * Apply inear function on a value.
      * 
-     * @param input - The input number
      * @param slope - Function slope parameter
+     * @param input - The x coordinate
      * @returns Linear'd value
      */
-    linear: (input: number, slope: number) => {
+    linear: (slope: number = 1, input: number = 1) => {
         return slope * input;
     },
 } as ActivationFunctionsCollection;

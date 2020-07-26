@@ -1,5 +1,13 @@
-import { RRGenerator } from '../structures/types.struct';
+import {
+    RRGenerator,
+    Connection,
+    NodeGroup,
+    CostFunctionTypes,
+} from '../structures/types.struct';
 import { randNum } from './utils.lib';
+
+// Derivative functions.
+const derivatives = require('./functions/derivatives.lib');
 
 /**
  * Xavier normal weight initialization formula.
@@ -10,16 +18,23 @@ import { randNum } from './utils.lib';
  * @param indim - Input dimensions
  * @param outdim - Output dimensions
  * @param specialized - Special case coefficient multiplication
+ * @param absolutize - Only positive values are allowed
  * @returns Initial weight value.
  */
-export const XavierNormal: RRGenerator = (indim: number, outdim: number, specialized = false) => {
+export const XavierNormal: RRGenerator = (
+    indim: number,
+    outdim: number,
+    specialized = false,
+    absolutize = false,
+) => {
     const upscale = specialized ? 4 : 1;
     const bound = Math.sqrt(6 / (indim + outdim)) * upscale;
-    return randNum(-bound, bound, 2);
-};
+    const result = randNum(-bound, bound, 2);
+    return absolutize ? Math.abs(result) : result;
+}
 
 /**
- * Complicated stuff also known as dela rule.
+ * Simple perceptron backpropagation rule.
  * 
  * For more info see:
  * https://en.wikipedia.org/wiki/Delta_rule
@@ -38,3 +53,80 @@ export const deltaRule = (
     inputValue: number,
     learningRate: number,
 ) => ((targetValue - sourceNodeValue) * weightedSumDerivative * inputValue * learningRate);
+
+/**
+ * Generalized delta rule, for n-layer neural network.
+ *
+ * For more info see:
+ * https://en.wikipedia.org/wiki/Backpropagation
+ * 
+ * @param target - Target value
+ * @param costFunction - Currently used cost function
+ * @param learningRate - Used when calculating delta weight
+ * @param layers - Object describing network layers
+ */
+export const generalBackpropagation = (
+    target: number,
+    costFunction: CostFunctionTypes,
+    learningRate: number,
+    layers: NodeGroup[],
+) => {
+    // Reverse layer iteration.
+    for (let i = layers.length - 1; i > -1; i--) {
+        const layer = layers[i];
+
+        layer.collection.forEach((sourceNode) => {
+            // Output layer.
+            if (i === layers.length - 1) {
+                // Iterate over neurons connected to output neuron.
+                sourceNode.connectedBy.forEach((sourceConnectionObject) => {
+                    // Sigma is important component in backpropagation. It is virtually
+                    // calculated as a multiplication of derivatives of cost function
+                    // and activation funcion.
+                    const sigma = derivatives[costFunction](
+                        target, sourceNode.value,
+                    ) * derivatives[layer.activation](sourceNode.weightedSum);
+
+                    sourceNode.sigma = sigma;
+                    // Calculate final delta weight. It equals sigma times
+                    const deltaWeight = sigma * sourceConnectionObject.node.value;
+
+                    sourceConnectionObject.weight -= deltaWeight * learningRate;
+                    // Get to the other side of the connection and propagate delta weight over there.
+                    const targetConnectionObject = sourceConnectionObject.node.connectedTo.find((target) => { return target.node.id === sourceNode.id });
+                    targetConnectionObject.weight = sourceConnectionObject.weight;
+                });
+            // Hidden layer neurons.
+            } else {
+                // Get sigma sum from next layer.
+                const sum = sigmaSum(sourceNode.connectedTo);
+                // Apply delta-rule to adjust neural network weights.
+                sourceNode.connectedBy.forEach((sourceConnectionObject) => {
+                    sourceNode.sigma = sum * derivatives[layer.activation](sourceNode.value);
+                    // Calculate and apply delta weight.
+                    const deltaWeight = sourceNode.sigma * sourceConnectionObject.node.value;
+                    sourceConnectionObject.weight -= deltaWeight * learningRate;
+                    // Get to the other side of the connection and propagate delta weight over there.
+                    const targetConnectionObject = sourceConnectionObject.node.connectedTo.find((target) => { return target.node.id === sourceNode.id });
+                    targetConnectionObject.weight = sourceConnectionObject.weight;
+                });        
+            }
+        });
+    }
+};
+
+/**
+ * Calculate sigma sum used in backpropagation.
+ *
+ * @param nextLayerConnections - Connection collection of layer to the right
+ * @returns Summed sigma values
+ */
+export const sigmaSum = (nextLayerConnections: Connection[]) => {
+    let sum = 0;
+    nextLayerConnections.forEach((sourceConnectionObject) => {
+        const increment = sourceConnectionObject.weight * sourceConnectionObject.node.sigma;
+        sum += increment;
+    });
+
+    return sum;
+};
