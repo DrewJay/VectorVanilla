@@ -93,7 +93,7 @@ export const generalBackpropagation = (
 
                     sourceConnectionObject.weight -= deltaWeight * learningRate;
                     // Get to the other side of the connection and propagate delta weight over there.
-                    const targetConnectionObject = sourceConnectionObject.node.connectedTo.find((target) => { return target.node.id === sourceNode.id });
+                    const targetConnectionObject = sourceConnectionObject.node.connectedTo.find((target) => target.node.id === sourceNode.id);
                     targetConnectionObject.weight = sourceConnectionObject.weight;
                 });
             // Hidden layer neurons.
@@ -109,7 +109,7 @@ export const generalBackpropagation = (
 
                     sourceConnectionObject.weight -= deltaWeight * learningRate;
                     // Get to the other side of the connection and propagate delta weight over there.
-                    const targetConnectionObject = sourceConnectionObject.node.connectedTo.find((target) => { return target.node.id === sourceNode.id });
+                    const targetConnectionObject = sourceConnectionObject.node.connectedTo.find((target) => target.node.id === sourceNode.id);
                     targetConnectionObject.weight = sourceConnectionObject.weight;
                 });        
             }
