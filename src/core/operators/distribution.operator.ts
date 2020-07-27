@@ -4,6 +4,7 @@ import {
     ActivationFunctionsCollection,
     CostFunctionTypes,
     CostFunctionsCollection,
+    Optimizer,
 } from '../../common/structures/types.struct';
 
 import {
@@ -13,7 +14,13 @@ import {
 import {
     generalBackpropagation,
 } from '../../common/lib/scientific.lib';
-import { randNum } from '../../common/lib/utils.lib';
+
+import { shuffleArray } from '../../common/lib/utils.lib';
+import {
+    SGD_DECAY_RATE,
+    RECOMMENDED_DIVERGENCE_THRESHOLD,
+    RECOMMENDED_TRAINING_CONFIDENCE,
+} from '../../common/structures/constants.struct';
 
 /**
  * Unit suited for data distribution across the neural network.
@@ -35,6 +42,11 @@ export class DistributionUnit {
     public error: number = 0;
 
     /**
+     * Collection of training errors.
+     */
+    public errorCollection: number[] = [];
+
+    /**
      * Provided input data.
      */
     public inputData: number[] = [];
@@ -42,17 +54,22 @@ export class DistributionUnit {
     /**
      * Expected data.
      */
-    public targetData: number[] = [];
+    private targetData: number[] = [];
 
     /**
      * Generated descriptive T2 layer object.
      */
-    public layers: NodeGroup[];
+    private layers: NodeGroup[];
 
     /**
      * Chosen error function.
      */
     private costFunction: CostFunctionTypes;
+
+    /**
+     * Optimizer function.
+     */
+    private optimizer!: Optimizer;
 
     /**
      * Input batch size.
@@ -75,14 +92,6 @@ export class DistributionUnit {
     private errorTracking = false;
 
     /**
-     * When learning rate is being modified, these are the rates.
-     */
-    private learningRateTuneRates = {
-        min: .001,
-        max: .009,
-    };
-
-    /**
      * Collection of activation functions.
      */
     private activations: ActivationFunctionsCollection;
@@ -93,56 +102,28 @@ export class DistributionUnit {
     private costs: CostFunctionsCollection;
 
     /**
-     * Previous error correction action (up/down).
-     */
-    private errorCorrectionIncrease = false;
-
-    /**
-     * How many times error can increase in a row.
-     */
-    private errorFluctuationLimit = 1;
-
-    /**
-     * How many times error got worse in a row.
-     */
-    private errorCounter = 0;
-
-    /**
-     * Non-error counter.
-     */
-    private subsequentErorReducingIterations = 0;
-
-    /**
-     * Constant values used outside of this class during training.
-     */
-    public static constants = {
-        RECOMMENDED_DIVERGENCE_THRESHOLD: 2,
-        RECOMMENDED_TRAINING_CONFIDENCE: Math.pow(10, -30),
-    };
-
-    /**
      * Store layers reference locally and modify it on the fly.
      * 
      * @param layers - T2 layers object
      * @param costFunction - Error function to be used
+     * @param optimizer - Optimizer function to be used
      * @param batchSize - Training sample size
-     * @param learningRate - The learning rate (min. 1)
-     * @param adaptive - Whether to use internal adaptive methods
+     * @param learningRate - The learning rate
      * @param errorTracking - Whether to track errors during training
      */
     constructor(
         layers: NodeGroup[],
         costFunction: CostFunctionTypes,
+        optimizer: Optimizer,
         batchSize: number,
         learningRate: number = 1,
-        adaptive: boolean = false,
         errorTracking: boolean = false
     ) {
         this.layers = layers;
         this.costFunction = costFunction;
+        this.optimizer = optimizer;
         this.batchSize = batchSize;
         this.learningRate = learningRate;
-        this.adaptive = adaptive;
         this.errorTracking = errorTracking;
     }
 
@@ -173,12 +154,12 @@ export class DistributionUnit {
     public terminateOn(reasons: TerminalReasons[]) {
         if (
             reasons.includes('divergence')
-            && this.error >= DistributionUnit.constants.RECOMMENDED_DIVERGENCE_THRESHOLD
+            && this.error >= RECOMMENDED_DIVERGENCE_THRESHOLD
         ) {
             return 'Possible divergence detected.';
         } else if (
             reasons.includes('convergence')
-            && this.error <= DistributionUnit.constants.RECOMMENDED_TRAINING_CONFIDENCE
+            && this.error <= RECOMMENDED_TRAINING_CONFIDENCE
         ) {
             return 'Training terminated for high confidence results.';
         }
@@ -193,6 +174,7 @@ export class DistributionUnit {
     public iterate(feedForwardOnly = false) {
         // Get input layer size and base increment on it.
         const inputLayerSize = this.layers[0].collection.length;
+        shuffleArray(this.inputData);
 
         for (let i = 0; i < this.inputData.length; i += inputLayerSize) {
             this.layers.forEach((layer) => {
@@ -221,18 +203,21 @@ export class DistributionUnit {
                     if (output) {
                         const error = this.costs[this.costFunction](this.targetData[i], sourceNode.value);
 
-                        // Attempt to adjust learning rate.
-                        if (this.adaptive) {
-                            this.stochasticLearningRateAdaptation(this.error, error);
-                        }
-
                         // Store the error.
-                        this.error = error;
+                        if (!feedForwardOnly) {
+                            this.errorCollection.push(error);
+                            this.error = this.errorCollection.reduce((a, b) => a + b) / this.errorCollection.length;
+                        }
                         if (this.errorTracking) { console.log(this.error); }
 
                         // Backpropagate every time we're not predicting.
-                        if (feedForwardOnly === false) {
-                            generalBackpropagation(this.targetData[i], this.costFunction, this.learningRate, this.layers);
+                        if (feedForwardOnly === false && this.optimizer === 'SGD') {
+                            generalBackpropagation(
+                                this.targetData[i],
+                                this.costFunction,
+                                this.learningRate, this.layers,
+                                (gradient, learningRate, prevDelta) => (gradient * learningRate) + prevDelta * SGD_DECAY_RATE,
+                            );
                         }
 
                         // Generate output value.
@@ -250,7 +235,6 @@ export class DistributionUnit {
                 });
             });
         }
-
         return this.error;
     }
 
@@ -264,44 +248,5 @@ export class DistributionUnit {
                 node.value = 0;
             });
         });
-    }
-
-    /**
-     * Attempt to adjust learning rate based on error tendencies.
-     * 
-     * @param oldError - Previous error
-     * @param newError - New error
-     */
-    private stochasticLearningRateAdaptation(oldError: number, newError: number) {
-        // Error has increased.
-        if (newError > oldError) {
-            this.errorCounter += 1;
-            this.subsequentErorReducingIterations = 0;
-
-            // Check if number of allowed subsequent errors has passed.
-            if (this.errorCounter === this.errorFluctuationLimit) {
-                // Adjust learning rate++.
-                if (!this.errorCorrectionIncrease) {
-                    this.learningRate += randNum(
-                        this.learningRateTuneRates.min,
-                        this.learningRateTuneRates.max,
-                        4,
-                    );
-                    this.errorCorrectionIncrease = true;
-                    // Adjust learning rate--.
-                } else {
-                    this.learningRate -= randNum(
-                        this.learningRateTuneRates.min,
-                        this.learningRateTuneRates.max,
-                        4,
-                    );
-                    this.errorCorrectionIncrease = false;
-                }
-            }
-        // Error has decreased.
-        } else {
-            this.errorCounter = 0;
-            this.subsequentErorReducingIterations += 1;
-        }
     }
 };

@@ -73,8 +73,8 @@ export class NetworkAbstractionUnit {
             if (this.layerStackT2[index + 1]) {
                 nodeGroup.collection.forEach((sourceNode) => {
                     this.layerStackT2[index + 1].collection.forEach((targetNode) => {
-                        sourceNode.connectedTo.push({ node: targetNode, weight: null, });
-                        targetNode.connectedBy.push({ node: sourceNode, weight: null, });
+                        sourceNode.connectedTo.push({ node: targetNode, weight: null, prevDelta: 0 });
+                        targetNode.connectedBy.push({ node: sourceNode, weight: null, prevDelta: 0 });
                     });
                 });
             }
@@ -96,7 +96,7 @@ export class NetworkAbstractionUnit {
 
                     // Distribute weights to particular connected nodes.
                     sourceNode.connectedTo.forEach((sourceConnectionObject) => {
-                        const weight = XavierNormal(sourceNode.connectedBy.length, sourceNode.connectedTo.length, false, true);
+                        const weight = XavierNormal(sourceNode.connectedBy.length, sourceNode.connectedTo.length, false, false);
                         sourceConnectionObject.weight = weight;
 
                         const targetConnectionObject = sourceConnectionObject.node.connectedBy.find((targetConnectionObject) => targetConnectionObject.node.id === id);

@@ -70,6 +70,7 @@ export const generalBackpropagation = (
     costFunction: CostFunctionTypes,
     learningRate: number,
     layers: NodeGroup[],
+    optimizer: (gradient: number, learningRate: number, prevDelta: number) => number,
 ) => {
     // Reverse layer iteration.
     for (let i = layers.length - 1; i > -1; i--) {
@@ -89,9 +90,12 @@ export const generalBackpropagation = (
                 // Iterate over neurons connected to output neuron.
                 sourceNode.connectedBy.forEach((sourceConnectionObject) => {
                     // Calculate final delta weight. It equals sigma times source node value.
-                    const deltaWeight = sigma * sourceConnectionObject.node.value;
+                    const gradient = sigma * sourceConnectionObject.node.value;
 
-                    sourceConnectionObject.weight -= deltaWeight * learningRate;
+                    const delta = optimizer(gradient, learningRate, sourceConnectionObject.prevDelta);
+                    sourceConnectionObject.weight -= delta;
+                    sourceConnectionObject.prevDelta = delta;
+
                     // Get to the other side of the connection and propagate delta weight over there.
                     const targetConnectionObject = sourceConnectionObject.node.connectedTo.find((target) => target.node.id === sourceNode.id);
                     targetConnectionObject.weight = sourceConnectionObject.weight;
@@ -105,9 +109,12 @@ export const generalBackpropagation = (
                 // Apply delta-rule to adjust neural network weights.
                 sourceNode.connectedBy.forEach((sourceConnectionObject) => {
                     // Calculate and apply delta weight.
-                    const deltaWeight = sourceNode.sigma * sourceConnectionObject.node.value;
+                    const gradient = sourceNode.sigma * sourceConnectionObject.node.value;
 
-                    sourceConnectionObject.weight -= deltaWeight * learningRate;
+                    const delta = optimizer(gradient, learningRate, sourceConnectionObject.prevDelta);
+                    sourceConnectionObject.weight -= delta;
+                    sourceConnectionObject.prevDelta = delta;
+
                     // Get to the other side of the connection and propagate delta weight over there.
                     const targetConnectionObject = sourceConnectionObject.node.connectedTo.find((target) => target.node.id === sourceNode.id);
                     targetConnectionObject.weight = sourceConnectionObject.weight;

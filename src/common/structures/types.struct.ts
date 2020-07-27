@@ -36,7 +36,7 @@ export type RRGenerator = (
 /**
  * Activation functions string representations.
  */
-export type ActivationFunctionTypes = 'ReLu' | 'sigmoid' | 'linear'
+export type ActivationFunctionTypes = 'ReLu' | 'sigmoid' | 'linear' | 'sin' | 'cos' | 'tan' | 'tanh' | 'log' | 'none'
 
 /**
  * Error function string representations.
@@ -56,6 +56,11 @@ export type ActivationFunctionsCollection = {
 export type CostFunctionsCollection = {
     [key in CostFunctionTypes]: CostFunction
 }
+
+/**
+ * Optimizer functions.
+ */
+export type Optimizer = 'SGD' | 'Adam';
 
 /**
  * Collection of derivative functions.
@@ -107,4 +112,5 @@ export type NodeGroup = {
 export type Connection = {
     node: Node;
     weight: number | null;
+    prevDelta: number;
 }
