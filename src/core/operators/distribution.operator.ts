@@ -1,6 +1,5 @@
 import {
     NodeGroup,
-    TerminalReasons,
     ActivationFunctionsCollection,
     CostFunctionTypes,
     CostFunctionsCollection,
@@ -15,12 +14,11 @@ import {
     generalBackpropagation,
 } from '../../common/lib/scientific.lib';
 
-import { shuffleArray } from '../../common/lib/utils.lib';
 import {
     SGD_DECAY_RATE,
-    RECOMMENDED_DIVERGENCE_THRESHOLD,
-    RECOMMENDED_TRAINING_CONFIDENCE,
 } from '../../common/structures/constants.struct';
+
+import { shuffleArray } from '../../common/lib/utils.lib';
 
 /**
  * Unit suited for data distribution across the neural network.
@@ -37,20 +35,15 @@ export class DistributionUnit {
     public output: number[] = [];
 
     /**
-     * Training error.
-     */
-    public error: number = 0;
-
-    /**
-     * Collection of training errors.
-     */
-    public errorCollection: number[] = [];
-
-    /**
      * Provided input data.
      */
     public inputData: number[] = [];
 
+    /**
+     * Collection of training errors.
+     */
+    private errorCollection: number[] = [];
+    
     /**
      * Expected data.
      */
@@ -146,35 +139,20 @@ export class DistributionUnit {
     }
 
     /**
-     * Terminate training if particular conditions are fulfilled.
-     * 
-     * @param reasons - Reasons of termination
-     * @returns Textual reson description
-     */
-    public terminateOn(reasons: TerminalReasons[]) {
-        if (
-            reasons.includes('divergence')
-            && this.error >= RECOMMENDED_DIVERGENCE_THRESHOLD
-        ) {
-            return 'Possible divergence detected.';
-        } else if (
-            reasons.includes('convergence')
-            && this.error <= RECOMMENDED_TRAINING_CONFIDENCE
-        ) {
-            return 'Training terminated for high confidence results.';
-        }
-    }
-
-    /**
      * Distribute data across the neural network.
      * 
      * @param feedForwardOnly - Only feed the data in to get the output without any network
      * characteristics modifications (a.k.a "prediction")
+     * @param shuffle - Shuffle input data
      */
-    public iterate(feedForwardOnly = false) {
+    public epoch(feedForwardOnly = false, shuffle = true) {
         // Get input layer size and base increment on it.
         const inputLayerSize = this.layers[0].collection.length;
-        shuffleArray(this.inputData);
+
+        // Shuffle the input data
+        if (shuffle) {
+            shuffleArray([this.inputData, this.targetData]);
+        }
 
         for (let i = 0; i < this.inputData.length; i += inputLayerSize) {
             this.layers.forEach((layer) => {
@@ -204,11 +182,10 @@ export class DistributionUnit {
                         const error = this.costs[this.costFunction](this.targetData[i], sourceNode.value);
 
                         // Store the error.
-                        if (!feedForwardOnly) {
+                        if (!feedForwardOnly && i === this.inputData.length - 1) {
                             this.errorCollection.push(error);
-                            this.error = this.errorCollection.reduce((a, b) => a + b) / this.errorCollection.length;
+                            if (this.errorTracking) { console.log(error); }
                         }
-                        if (this.errorTracking) { console.log(this.error); }
 
                         // Backpropagate every time we're not predicting.
                         if (feedForwardOnly === false && this.optimizer === 'SGD') {
@@ -235,7 +212,22 @@ export class DistributionUnit {
                 });
             });
         }
-        return this.error;
+    }
+
+    /**
+     * Make the instance ready by clearing previous error collection.
+     */
+    reset() {
+        this.errorCollection = [];
+    }
+
+    /**
+     * Return mean error calculated from errors of all epochs.
+     *
+     * @returns Training error value
+     */
+    getError() {
+        return this.errorCollection.reduce((a, b) => a + b) / this.errorCollection.length;
     }
 
     /**

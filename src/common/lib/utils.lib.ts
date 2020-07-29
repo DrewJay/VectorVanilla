@@ -38,11 +38,15 @@ export const dotProduct = (arr1: number[], arr2: number[]) => {
  * @param array - Input array
  * @returns Shuffled array
  */
-export const shuffleArray = (array: number[]) => {
-    for (let i = array.length - 1; i > 0; i--) {
+export const shuffleArray = (arrayCollection: number[][]) => {
+    let primary = arrayCollection[0];
+    for (let i = primary.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
-        var temp = array[i];
-        array[i] = array[j];
-        array[j] = temp;
+        for (let q = 0; q < arrayCollection.length; q++) {
+            const array = arrayCollection[q];
+            var temp = array[i];
+            array[i] = array[j];
+            array[j] = temp;
+        }
     }
 };

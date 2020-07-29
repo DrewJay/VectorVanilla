@@ -14,7 +14,7 @@ export class ResultCollector {
      */
     static predict(distributionUnit: DistributionUnit, input: number[]) {
         distributionUnit.inputData = input;
-        distributionUnit.iterate(true);
+        distributionUnit.epoch(true, false);
         return distributionUnit.output;
     }
 

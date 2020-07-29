@@ -7,10 +7,9 @@ const net = new NetworkAbstractionUnit();
 
 // Describe network layers.
 net.add({ nodes: 1, activation: 'none', bias: 0, });
-net.add({ nodes: 100, activation: 'tanh', bias: 0, });
-net.add({ nodes: 100, activation: 'ReLu', bias: 0, });
-net.add({ nodes: 100, activation: 'ReLu', bias: 0, });
-net.add({ nodes: 1, activation: 'linear', bias: 0, });
+net.add({ nodes: 20, activation: 'ReLu', bias: 0, });
+net.add({ nodes: 20, activation: 'ReLu', bias: 0, });
+net.add({ nodes: 1, activation: 'sin', bias: 0, });
 
 // Use NetworkAbastractionUnit API to forge detailed network model.
 net.describeLayers();
@@ -23,7 +22,7 @@ const dist = new DistributionUnit(
     'meanSquaredError',
     'SGD',
     1,
-    .0009,
+    .1,
     false,
 );
 
@@ -31,34 +30,33 @@ const dist = new DistributionUnit(
 const data = [];
 let increment = 0;
 
-for (let i = 1; i < 4; i += .01) { data[increment++] = i / 10; }
-const targetData = data.map((val) => Math.sin(val) / 10);
-const errors = [];
-const iterations = [];
+for (let i = 0; i < 6; i += .01) { data[increment++] = i / 10; }
+const targetData = data.map((val) => Math.sin(val));
 
 // Plot target data.
-ResultCollector.plot(data, targetData);
+const _data = [...data];
+const _targetData = [...targetData];
+ResultCollector.plot(_data, _targetData);
 
 dist.initializeInputData(data);
 dist.initializeTargetData(targetData);
 
 // Use DistributionUnit iterative generator method to perform iterations.
-for (let i = 0; i < 500; i++) {
-    const err = dist.iterate();
-    errors.push(err);
-    iterations.push(i);
-    const reason = dist.terminateOn(['divergence']);
-    if (reason) { console.log(reason); break; }
+for (let i = 0; i < 100; i++) {
+    dist.epoch(false, true);
 }
 
 // Show final error.
-console.log(`Error = ${dist.error}.`);
+console.log(`Error = ${dist.getError()}.`);
+
+// Reset distribution instance.
+dist.reset();
 
 // Make prediction.
 const results = { x: [], y: [], };
 
 // Generate prediction input data.
-for (let i = 1; i < 4; i += 0.01) {
+for (let i = 0; i < 6; i += 0.01) {
     const feature = i;
     const prediction = ResultCollector.predict(dist, [feature]);
     results.x.push(feature);
