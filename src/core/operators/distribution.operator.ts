@@ -18,7 +18,15 @@ import {
     SGD_DECAY_RATE,
 } from '../../common/structures/constants.struct';
 
-import { shuffleArray } from '../../common/lib/utils.lib';
+import {
+    shuffleArray,
+    zeros,
+} from '../../common/lib/utils.lib';
+
+import {
+    scalarAdd,
+    scalarMult,
+} from '../../common/lib/matrix.lib';
 
 /**
  * Unit suited for data distribution across the neural network.
@@ -32,12 +40,12 @@ export class DistributionUnit {
     /**
      * The output node value at the end of the iteration.
      */
-    public output: number[] = [];
+    public output: number[][] = [];
 
     /**
      * Provided input data.
      */
-    public inputData: number[] = [];
+    public inputData: number[][] = [];
 
     /**
      * Collection of training errors.
@@ -47,7 +55,7 @@ export class DistributionUnit {
     /**
      * Expected data.
      */
-    private targetData: number[] = [];
+    private targetData: number[][] = [];
 
     /**
      * Generated descriptive T2 layer object.
@@ -125,7 +133,7 @@ export class DistributionUnit {
      * 
      * @param data - Input dataset
      */
-    public initializeInputData(data: number[]) {
+    public initializeInputData(data: number[][]) {
         this.inputData = data;
     }
 
@@ -134,7 +142,7 @@ export class DistributionUnit {
      * 
      * @param data - Target dataset
      */
-    public initializeTargetData(data: number[]) {
+    public initializeTargetData(data: number[][]) {
         this.targetData = data;
     }
 
@@ -173,7 +181,7 @@ export class DistributionUnit {
                     if (!input) {
                         const activation = this.activations[layer.activation];
                         sourceNode.weightedSum = sourceNode.value;
-                        sourceNode.value += layer.bias;
+                        sourceNode.value = scalarAdd(sourceNode.value, layer.bias);
                         sourceNode.value = activation(sourceNode.value);
                     }
 
@@ -193,7 +201,15 @@ export class DistributionUnit {
                                 this.targetData[i],
                                 this.costFunction,
                                 this.learningRate, this.layers,
-                                (gradient, learningRate, prevDelta) => (gradient * learningRate) + prevDelta * SGD_DECAY_RATE,
+                                (gradient, learningRate, prevDelta) => {
+                                    return scalarMult(
+                                            scalarAdd(
+                                            scalarMult(
+                                                gradient, learningRate
+                                            ), prevDelta
+                                        ), SGD_DECAY_RATE
+                                    );
+                                },
                             );
                         }
 
@@ -207,7 +223,7 @@ export class DistributionUnit {
                     // Adjust target node value (add to it's weighted sum). This is faster than dot product
                     // on non gpu accelerated devices.
                     sourceNode.connectedTo.forEach((sourceConnectionObject) => {
-                        sourceConnectionObject.node.value += sourceConnectionObject.weight * sourceNode.value;
+                        sourceConnectionObject.node.value = scalarMult(sourceNode.value, sourceConnectionObject.weight);
                     });
                 });
             });
@@ -237,7 +253,7 @@ export class DistributionUnit {
         // Simple iteration over all nodes.
         this.layers.forEach(layer => {
             layer.collection.forEach(node => {
-                node.value = 0;
+                node.value = zeros(this.inputData[0].length);
             });
         });
     }

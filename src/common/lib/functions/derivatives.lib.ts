@@ -2,6 +2,15 @@ import {
     DerivativeFunctionsCollection,
 } from '../../structures/types.struct';
 
+import {
+    crossMult,
+    scalarAdd,
+} from '../matrix.lib';
+
+import {
+    mean,
+} from '../utils.lib';
+
 module.exports = {
     /**
      * Sigmoid derivative function.
@@ -9,9 +18,9 @@ module.exports = {
      * @param input - The input number
      * @returns Sigmoid derivative value
      */
-    sigmoid: (input: number) => {
-        const _sigmoid = 1 / (1 + Math.exp(-input));
-        return _sigmoid * (1 - _sigmoid);
+    sigmoid: (input: number[]) => {
+        const _sigmoid = input.map((value) => 1 / (1 + Math.exp(-value)));
+        return crossMult(_sigmoid, scalarAdd(_sigmoid, -1));
     },
 
     /**
@@ -20,8 +29,8 @@ module.exports = {
      * @param input - The input number
      * @returns ReLu derivative value
      */
-    ReLu: (input: number) => {
-        return (input >= 0) ? 1 : 0;
+    ReLu: (input: number[]) => {
+        return input.map((value) => (value >= 0) ? 1 : 0);
     },
 
 
@@ -31,8 +40,8 @@ module.exports = {
      * @param input - The input number
      * @returns Sine derivative value
      */
-    sin: (input: number) => {
-        return Math.cos(input);
+    sin: (input: number[]) => {
+        return input.map((value) => Math.cos(value));
     },
 
     /**
@@ -41,8 +50,8 @@ module.exports = {
      * @param input - The input number
      * @returns Cosine derivative value
      */
-    cos: (input: number) => {
-        return -Math.sin(input);
+    cos: (input: number[]) => {
+        return input.map((value) => -Math.sin(value));
     },
 
     /**
@@ -51,8 +60,8 @@ module.exports = {
      * @param input - The input number
      * @returns Tangent derivative value
      */
-    tan: (input: number) => {
-        return Math.pow(1 / Math.cos(input), 2);
+    tan: (input: number[]) => {
+        return input.map((value) => Math.pow(1 / Math.cos(value), 2));
     },
 
     /**
@@ -61,8 +70,8 @@ module.exports = {
      * @param input - The input number
      * @returns Hyperbolic tangent derivative value
      */
-    tanh: (input: number) => {
-        return 1 / Math.pow(Math.cosh(input), 2);
+    tanh: (input: number[]) => {
+        return input.map((value) => 1 / Math.pow(Math.cosh(value), 2));
     },
 
     /**
@@ -71,17 +80,17 @@ module.exports = {
      * @param input - The input number
      * @returns Natlog derivative value
      */
-    log: (input: number) => {
-        return (input === 0) ? 0 : (1 / input);
+    log: (input: number[]) => {
+        return input.map((value) => (value === 0) ? 0 : (1 / value));
     },
 
     /**
-     * Value passer derivativee.
+     * Value passer derivative.
      * 
      * @returns 1 value
      */
-    none: () => {
-        return 1;
+    none: (input: number[]) => {
+        return input.map((value) => value / value);
     },
 
     /**
@@ -90,8 +99,8 @@ module.exports = {
      * @param slope - Function slope parameter
      * @returns Linear derivative value
      */
-    linear: (slope: number = 1) => {
-        return slope; 
+    linear: (slope: number[] = [1]) => {
+        return slope;
     },
 
     /**
@@ -101,7 +110,9 @@ module.exports = {
      * @param output - Gotten number
      * @returns Derivated MSE value
      */
-    meanSquaredError: (target: number, output: number) => {
-        return output - target;
+    meanSquaredError: (target: number[], output: number[]) => {
+        const meanTarget = mean(target);
+        const meanOutput = mean(output);
+        return meanOutput - meanTarget;
     }
 } as DerivativeFunctionsCollection;

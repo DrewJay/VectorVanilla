@@ -4,7 +4,16 @@ import {
     NodeGroup,
     CostFunctionTypes,
 } from '../structures/types.struct';
-import { randNum } from './utils.lib';
+import {
+    randNum,
+    zeros,
+    mean,
+} from './utils.lib';
+import {
+    crossMult,
+    scalarMult,
+    crossAdd,
+} from './matrix.lib';
 
 // Derivative functions.
 const derivatives = require('./functions/derivatives.lib');
@@ -66,11 +75,11 @@ export const deltaRule = (
  * @param layers - Object describing network layers
  */
 export const generalBackpropagation = (
-    target: number,
+    target: number[],
     costFunction: CostFunctionTypes,
     learningRate: number,
     layers: NodeGroup[],
-    optimizer: (gradient: number, learningRate: number, prevDelta: number) => number,
+    optimizer: (gradient: number[], learningRate: number, prevDelta: number) => number[],
 ) => {
     // Reverse layer iteration.
     for (let i = layers.length - 1; i > -1; i--) {
@@ -82,17 +91,18 @@ export const generalBackpropagation = (
                 // Sigma is important component in backpropagation. It is virtually
                 // calculated as a multiplication of derivatives of cost function
                 // and activation funcion.
-                const sigma = derivatives[costFunction](
-                    target, sourceNode.value,
-                ) * derivatives[layer.activation](sourceNode.weightedSum);
+                const sigma = mean(scalarMult(
+                    derivatives[layer.activation](sourceNode.weightedSum) as number[],
+                    derivatives[costFunction](target, sourceNode.value) as number,
+                ));
 
                 sourceNode.sigma = sigma;
                 // Iterate over neurons connected to output neuron.
                 sourceNode.connectedBy.forEach((sourceConnectionObject) => {
                     // Calculate final delta weight. It equals sigma times source node value.
-                    const gradient = sigma * sourceConnectionObject.node.value;
+                    const gradient = scalarMult(sourceConnectionObject.node.value, sigma);
 
-                    const delta = optimizer(gradient, learningRate, sourceConnectionObject.prevDelta);
+                    const delta = mean(optimizer(gradient, learningRate, sourceConnectionObject.prevDelta));
                     sourceConnectionObject.weight -= delta;
                     sourceConnectionObject.prevDelta = delta;
 
@@ -103,15 +113,15 @@ export const generalBackpropagation = (
             // Hidden layer neurons.
             } else {
                 // Get sigma sum from next layer.
-                const sum = sigmaSum(sourceNode.connectedTo);
-                sourceNode.sigma = sum * derivatives[layer.activation](sourceNode.value);
+                const sum = sigmaSum(sourceNode.connectedTo, target.length);
+                sourceNode.sigma = mean(scalarMult(derivatives[layer.activation](sourceNode.value) as number[], sum));
 
                 // Apply delta-rule to adjust neural network weights.
                 sourceNode.connectedBy.forEach((sourceConnectionObject) => {
                     // Calculate and apply delta weight.
-                    const gradient = sourceNode.sigma * sourceConnectionObject.node.value;
+                    const gradient = scalarMult(sourceConnectionObject.node.value, sourceNode.sigma);
 
-                    const delta = optimizer(gradient, learningRate, sourceConnectionObject.prevDelta);
+                    const delta = mean(optimizer(gradient, learningRate, sourceConnectionObject.prevDelta));
                     sourceConnectionObject.weight -= delta;
                     sourceConnectionObject.prevDelta = delta;
 
@@ -128,12 +138,13 @@ export const generalBackpropagation = (
  * Calculate sigma sum used in backpropagation.
  *
  * @param nextLayerConnections - Connection collection of layer to the right
+ * @param targetLength - Used to initialize sum variable
  * @returns Summed sigma values
  */
-export const sigmaSum = (nextLayerConnections: Connection[]) => {
+export const sigmaSum = (nextLayerConnections: Connection[], targetLength: number) => {
     let sum = 0;
     nextLayerConnections.forEach((sourceConnectionObject) => {
-        const increment = sourceConnectionObject.weight * sourceConnectionObject.node.sigma;
+        const increment = sourceConnectionObject.node.sigma * sourceConnectionObject.weight;
         sum += increment;
     });
 

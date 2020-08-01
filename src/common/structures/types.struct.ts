@@ -6,12 +6,12 @@ export type NormalizationFunction = (input: number) => number
 /**
  * Activation function structure.
  */
-export type ActivationFunction = (input: number, param?: number) => number
+export type ActivationFunction = (input: number[], param?: number[]) => number[]
 
 /**
  * Error function structure.
  */
-export type CostFunction = (target: number, output: number) => number
+export type CostFunction = (target: number[], output: number[]) => number
 
 /**
  * Derivative function structure.
@@ -83,8 +83,8 @@ export type Layer = {
  */
 export type Node = {
     id: string;
-    value: number;
-    weightedSum: number;
+    value: number[];
+    weightedSum: number[];
     connectedTo: Connection[];
     connectedBy: Connection[];
     sigma?: number;

@@ -9,8 +9,8 @@ module.exports = {
      * @param input - The input number
      * @returns Sigmoid'd value
      */
-    sigmoid: (input: number) => {
-        return 1 / (1 + Math.exp(-input));
+    sigmoid: (input: number[]) => {
+        return input.map((value) => 1 / (1 + Math.exp(-value)));
     },
 
     /**
@@ -19,8 +19,8 @@ module.exports = {
      * @param input - The input number
      * @returns ReLu'd value
      */
-    ReLu: (input: number) => {
-        return ((input < 0) ? 0 : input);
+    ReLu: (input: number[]) => {
+        return input.map((value) => ((value < 0) ? 0 : value));
     },
 
     /**
@@ -29,8 +29,8 @@ module.exports = {
      * @param input - The input number
      * @returns Sine value
      */
-    sin: (input: number) => {
-        return Math.sin(input);
+    sin: (input: number[]) => {
+        return input.map((value) =>  Math.sin(value));
     },
 
     /**
@@ -39,8 +39,8 @@ module.exports = {
      * @param input - The input number
      * @returns Sine value
      */
-    cos: (input: number) => {
-        return Math.cos(input);
+    cos: (input: number[]) => {
+        return input.map((value) => Math.cos(value));
     },
 
     /**
@@ -49,8 +49,8 @@ module.exports = {
      * @param input - The input number
      * @returns Tangent value
      */
-    tan: (input: number) => {
-        return Math.tan(input);
+    tan: (input: number[]) => {
+        return input.map((value) => Math.tan(value));
     },
 
     /**
@@ -59,8 +59,8 @@ module.exports = {
      * @param input - The input number
      * @returns Hyperbolic tangent value
      */
-    tanh: (input: number) => {
-        return Math.tanh(input);
+    tanh: (input: number[]) => {
+        return input.map((value) => Math.tanh(value));
     },
 
     /**
@@ -69,8 +69,8 @@ module.exports = {
      * @param input - The input number
      * @returns Natlog value
      */
-    log: (input: number) => {
-        return Math.log(input);
+    log: (input: number[]) => {
+        return input.map((value) => Math.log(value));
     },
 
     /**
@@ -79,8 +79,8 @@ module.exports = {
      * @param input - The input number
      * @returns Input value
      */
-    none: (input: number) => {
-        return input;
+    none: (input: number[]) => {
+        return input.map((value) => value);
     },
 
     /**
@@ -90,7 +90,7 @@ module.exports = {
      * @param input - The x coordinate
      * @returns Linear'd value
      */
-    linear: (slope: number = 1, input: number = 1) => {
-        return slope * input;
+    linear: (slope: number[] = [1], input: number[] = [1]) => {
+        return slope.map((value) => value * input[0]);
     },
 } as ActivationFunctionsCollection;

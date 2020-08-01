@@ -22,14 +22,23 @@ export const randStr = (length: number) => {
 };
 
 /**
- * Calculate dot product from two arrays.
- * 
- * @param arr1 - Feature array 1
- * @param arr2 - Feature array 2
- * @returns Final dot product
+ * Get mean value of an array.
+ *
+ * @param arr - Input array
+ * @returns Array mean value
  */
-export const dotProduct = (arr1: number[], arr2: number[]) => {
-    return arr1.map((value, index) => value * arr2[index]).reduce((value, next) => value + next);
+export const mean = (arr: number[]) => {
+    return arr.reduce((a, b) => a + b) / arr.length;
+};
+
+/**
+ * Generate row array filled with zeros.
+ *
+ * @param length - Amount of zeros
+ * @returns Particular array 
+ */
+export const zeros = (length: number) => {
+    return new Array(length).fill(0);
 };
 
 /**
@@ -38,7 +47,7 @@ export const dotProduct = (arr1: number[], arr2: number[]) => {
  * @param array - Input array
  * @returns Shuffled array
  */
-export const shuffleArray = (arrayCollection: number[][]) => {
+export const shuffleArray = (arrayCollection: [number[][], number[][]]) => {
     let primary = arrayCollection[0];
     for (let i = primary.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));

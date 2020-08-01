@@ -12,7 +12,7 @@ export class ResultCollector {
      * @param input - Neural network input data
      * @returns Prediction output.
      */
-    static predict(distributionUnit: DistributionUnit, input: number[]) {
+    static predict(distributionUnit: DistributionUnit, input: number[][]) {
         distributionUnit.inputData = input;
         distributionUnit.epoch(true, false);
         return distributionUnit.output;

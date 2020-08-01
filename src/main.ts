@@ -1,6 +1,7 @@
 import { NetworkAbstractionUnit } from './core/bundlers/abstraction.bundler';
 import { DistributionUnit } from './core/operators/distribution.operator';
 import { ResultCollector } from './core/collectors/result.collector';
+import { flatten } from './common/lib/matrix.lib';
 
 // Use this class to create descriptive NN model.
 const net = new NetworkAbstractionUnit();
@@ -12,7 +13,7 @@ net.add({ nodes: 20, activation: 'ReLu', bias: 0, });
 net.add({ nodes: 1, activation: 'sin', bias: 0, });
 
 // Use NetworkAbastractionUnit API to forge detailed network model.
-net.describeLayers();
+net.describeLayers(1);
 net.formConnections();
 net.initializeWeights();
 
@@ -27,16 +28,16 @@ const dist = new DistributionUnit(
 );
 
 // Prepare simple datasets.
-const data = [];
+const data = [] as number[][];
 let increment = 0;
 
-for (let i = 0; i < 6; i += .01) { data[increment++] = i / 10; }
-const targetData = data.map((val) => Math.sin(val));
+for (let i = 0; i < 6; i += .01) { data[increment++] = [i / 10]; }
+const targetData = data.map((val) => [Math.sin(val[0])]);
 
 // Plot target data.
 const _data = [...data];
 const _targetData = [...targetData];
-ResultCollector.plot(_data, _targetData);
+ResultCollector.plot(flatten(_data), flatten(_targetData));
 
 dist.initializeInputData(data);
 dist.initializeTargetData(targetData);
@@ -58,9 +59,9 @@ const results = { x: [], y: [], };
 // Generate prediction input data.
 for (let i = 0; i < 6; i += 0.01) {
     const feature = i;
-    const prediction = ResultCollector.predict(dist, [feature]);
+    const prediction = ResultCollector.predict(dist, [[feature]]);
     results.x.push(feature);
-    results.y.push(prediction[0]);
+    results.y.push(prediction[0][0]);
 }
 
 // Plot predicted data.

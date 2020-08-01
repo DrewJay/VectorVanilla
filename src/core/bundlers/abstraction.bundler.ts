@@ -2,6 +2,11 @@ import {
     Layer,
     NodeGroup,
 } from '../../common/structures/types.struct';
+
+import {
+    zeros,
+} from '../../common/lib/utils.lib';
+
 import { XavierNormal } from '../../common/lib/scientific.lib';
 import { randStr } from '../../common/lib/utils.lib';
 
@@ -34,7 +39,7 @@ export class NetworkAbstractionUnit {
      * First transformation step - take layer stack
      * and create deeper description using Node objects.
      */
-    public describeLayers() {
+    public describeLayers(inputLength: number = 1) {
         this.layerStackT1.forEach((layer, index) => {
             this.layerStackT2[index] = {
                 collection: [],
@@ -48,8 +53,8 @@ export class NetworkAbstractionUnit {
                 this.layerStackT2[index].collection.push(
                     {
                         id: randStr(5),
-                        value: 0,
-                        weightedSum: 0,
+                        value: zeros(inputLength),
+                        weightedSum: [],
                         connectedTo: [],
                         connectedBy: [],
                     },
