@@ -26,6 +26,7 @@ import {
 import {
     scalarAdd,
     scalarMult,
+    crossAdd,
 } from '../../common/lib/matrix.lib';
 
 /**
@@ -220,7 +221,10 @@ export class DistributionUnit {
                     // Adjust target node value (add to it's weighted sum). This is faster than dot product
                     // on non gpu accelerated devices.
                     sourceNode.connectedTo.forEach((sourceConnectionObject) => {
-                        sourceConnectionObject.node.value = scalarMult(sourceNode.value, sourceConnectionObject.weight);
+                        sourceConnectionObject.node.value = crossAdd(
+                            sourceConnectionObject.node.value,
+                            scalarMult(sourceNode.value, sourceConnectionObject.weight),
+                        );
                     });
                 });
             });
