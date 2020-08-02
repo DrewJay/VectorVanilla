@@ -62,3 +62,14 @@ export const crossMult = (arr1: number[], arr2: number[]) => {
 export const crossAdd = (arr1: number[], arr2: number[]) => {
     return arr1.map((value, index) => value + arr2[index]);  
 };
+
+/**
+ * Cross-array subtraction.
+ *
+ * @param arr1 - Source array
+ * @param arr2 - Target array
+ * @returns Operation result
+ */
+export const crossSub = (arr1: number[], arr2: number[]) => {
+    return arr1.map((value, index) => value - arr2[index]);  
+};

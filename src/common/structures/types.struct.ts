@@ -87,7 +87,7 @@ export type Node = {
     weightedSum: number[];
     connectedTo: Connection[];
     connectedBy: Connection[];
-    sigma?: number;
+    sigma?: number[];
 }
 
 /**

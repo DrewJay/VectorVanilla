@@ -200,15 +200,12 @@ export class DistributionUnit {
                             generalBackpropagation(
                                 this.targetData[i],
                                 this.costFunction,
-                                this.learningRate, this.layers,
+                                this.learningRate,
+                                this.layers,
                                 (gradient, learningRate, prevDelta) => {
-                                    return scalarMult(
-                                            scalarAdd(
-                                            scalarMult(
-                                                gradient, learningRate
-                                            ), prevDelta
-                                        ), SGD_DECAY_RATE
-                                    );
+                                    const base = scalarMult(gradient, learningRate);
+                                    const momentum = prevDelta * SGD_DECAY_RATE;
+                                    return scalarAdd(base, momentum);
                                 },
                             );
                         }

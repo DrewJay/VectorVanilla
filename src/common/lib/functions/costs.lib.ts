@@ -6,6 +6,10 @@ import {
     mean,
 } from '../../lib/utils.lib';
 
+import {
+    crossSub,
+} from '../../lib/matrix.lib';
+
 module.exports = {
     /**
      * Calculate mean squared error.
@@ -15,8 +19,8 @@ module.exports = {
      * @returns Mean squared error value
      */
     meanSquaredError: (target: number[], output: number[]) => {
-        const meanTarget = mean(target);
-        const meanOutput = mean(output);
-        return .5 * (meanTarget - meanOutput) ** 2;
+        const sub = crossSub(target, output);
+        const preform = sub.map((val) => .5 * val ** 2);
+        return mean(preform);
     },
 } as CostFunctionsCollection;

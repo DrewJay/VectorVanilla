@@ -12,6 +12,7 @@ import {
 import {
     crossMult,
     scalarMult,
+    scalarAdd,
     crossAdd,
 } from './matrix.lib';
 
@@ -91,17 +92,16 @@ export const generalBackpropagation = (
                 // Sigma is important component in backpropagation. It is virtually
                 // calculated as a multiplication of derivatives of cost function
                 // and activation funcion.
-                const sigma = mean(scalarMult(
+                const sigma = scalarMult(
                     derivatives[layer.activation](sourceNode.weightedSum) as number[],
                     derivatives[costFunction](target, sourceNode.value) as number,
-                ));
+                );
 
                 sourceNode.sigma = sigma;
                 // Iterate over neurons connected to output neuron.
                 sourceNode.connectedBy.forEach((sourceConnectionObject) => {
                     // Calculate final delta weight. It equals sigma times source node value.
-                    const gradient = scalarMult(sourceConnectionObject.node.value, sigma);
-
+                    const gradient = crossMult(sourceConnectionObject.node.value, sigma);
                     const delta = mean(optimizer(gradient, learningRate, sourceConnectionObject.prevDelta));
                     sourceConnectionObject.weight -= delta;
                     sourceConnectionObject.prevDelta = delta;
@@ -114,12 +114,12 @@ export const generalBackpropagation = (
             } else {
                 // Get sigma sum from next layer.
                 const sum = sigmaSum(sourceNode.connectedTo, target.length);
-                sourceNode.sigma = mean(scalarMult(derivatives[layer.activation](sourceNode.value) as number[], sum));
+                sourceNode.sigma = crossMult(derivatives[layer.activation](sourceNode.value) as number[], sum);
 
                 // Apply delta-rule to adjust neural network weights.
                 sourceNode.connectedBy.forEach((sourceConnectionObject) => {
                     // Calculate and apply delta weight.
-                    const gradient = scalarMult(sourceConnectionObject.node.value, sourceNode.sigma);
+                    const gradient = crossMult(sourceConnectionObject.node.value, sourceNode.sigma);
 
                     const delta = mean(optimizer(gradient, learningRate, sourceConnectionObject.prevDelta));
                     sourceConnectionObject.weight -= delta;
@@ -142,11 +142,10 @@ export const generalBackpropagation = (
  * @returns Summed sigma values
  */
 export const sigmaSum = (nextLayerConnections: Connection[], targetLength: number) => {
-    let sum = 0;
+    let sum = zeros(targetLength);
     nextLayerConnections.forEach((sourceConnectionObject) => {
-        const increment = sourceConnectionObject.node.sigma * sourceConnectionObject.weight;
-        sum += increment;
+        const increment = scalarMult(sourceConnectionObject.node.sigma, sourceConnectionObject.weight);
+        sum = crossAdd(sum, increment);
     });
-
     return sum;
 };

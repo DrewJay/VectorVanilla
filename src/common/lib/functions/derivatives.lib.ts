@@ -5,6 +5,7 @@ import {
 import {
     crossMult,
     scalarAdd,
+    crossSub,
 } from '../matrix.lib';
 
 import {
@@ -90,7 +91,7 @@ module.exports = {
      * @returns 1 value
      */
     none: (input: number[]) => {
-        return input.map((value) => value / value);
+        return input.map(() => 1);
     },
 
     /**
@@ -111,8 +112,6 @@ module.exports = {
      * @returns Derivated MSE value
      */
     meanSquaredError: (target: number[], output: number[]) => {
-        const meanTarget = mean(target);
-        const meanOutput = mean(output);
-        return meanOutput - meanTarget;
+        return mean(crossSub(output, target));
     }
 } as DerivativeFunctionsCollection;
