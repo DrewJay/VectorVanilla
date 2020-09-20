@@ -1,7 +1,3 @@
-<p align="center">
-  <img width="350" src="https://i.ibb.co/d5s8MK7/matwire.gif">
-</p>
-
 # Matwire
 Is my very own implementation of neural network library.
 
