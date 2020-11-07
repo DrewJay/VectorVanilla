@@ -192,7 +192,8 @@ export class DistributionUnit {
                             generalBackpropagation(
                                 this.targetData[i],
                                 this.costFunction,
-                                this.learningRate, this.layers,
+                                this.learningRate,
+                                this.layers,
                                 (gradient, learningRate, prevDelta) => (gradient * learningRate) + prevDelta * SGD_DECAY_RATE,
                             );
                         }
