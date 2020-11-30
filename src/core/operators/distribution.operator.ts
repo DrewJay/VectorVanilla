@@ -123,7 +123,7 @@ export class DistributionUnit {
     /**
      * Initialize data that will enter the network.
      * 
-     * @param data - Input dataset
+     * @param data - Input dataset.
      */
     public initializeInputData(data: number[]) {
         this.inputData = data;
