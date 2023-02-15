@@ -1,4 +1,8 @@
-# Matwire
+<p align="center">
+    <img width="300" src="/logo.png"/>
+</p>
+
+# VectorVanilla 🍦
 Experimental implementation of neural network library in TypeScript.
 
 ## What does it do?
