@@ -2,7 +2,7 @@
     <img width="200" src="/applogo.png"/>
 </p>
 
-# VectorVanilla 🍦
+# Vector Vanilla 🍦
 Experimental implementation of neural network library in TypeScript.
 
 ## What does it do?
